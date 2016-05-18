@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 使用映射接口的方式  命名空间的值必须和映射接口的全限定名一致 -->
+<mapper namespace="com.yc.mapper.SubjectMapper">
+       <select id="getSubject"  resultType="Subject">
+          select * from subject
+       </select>
+       <select id="findAllSubjectBeans" resultType="SubjectBean">
+          select sub_id,title,(select count(*) from option1 where sub_id=s.sub_id) optionCount,
+          (select count(*) from item where sub_id=s.sub_id) voteUserCount from subject s
+       </select>
+       <resultMap type="OptionBean" id="OptionBeanMap">
+           <collection property="voteOptionCount" column="sub_id" javaType="list" select="getOptionVoteCountById"/>
+       </resultMap>
+       <!-- 定义sql语句变量 -->
+       <sql id="selectSubject1">
+         select sub_id,title,type,(select count(1) from option1 where sub_id=s.sub_id) optionCount,
+         (select count(1) from item where sub_id=s.sub_id) voteUserCount
+         from subject s where sub_id=#{sub_id}
+       </sql>
+       <select id="getOptionsBySId" parameterType="int" resultMap="OptionBeanMap">
+         <include refid="selectSubject1"/>
+       </select>
+       <select id="getOptionVoteCountById" parameterType="int" resultType="int">
+          select count(i.op_id) from option1 o left join item i on o.op_id=i.op_id
+         where o.sub_id=#{sub_id} group by order1 order by order1
+       </select>
+       <resultMap type="VoteBean" id="voteBeanMap">
+          <id property="sub_id" column="sub_id"/>
+          <collection property="options" column="sub_id" ofType="Option" select="getOptionsById"/>
+       </resultMap>
+        <select id="getVoteBeanById" parameterType="int" resultMap="voteBeanMap">
+           <include refid="selectSubject1"/>
+        </select>
+        <select id="getOptionsById"  parameterType="int" resultType="Option">
+           select * from option1 where sub_id=#{sub_id}
+        </select>
+        <insert id="insertItem" parameterType="Item">
+             insert into item values(seq_item.nextval,#{op_id},#{sub_id},#{userid})
+        </insert>
+        <insert id="insertSubject" parameterType="AddSubjectBean">
+            <selectKey keyColumn="currId" keyProperty="sub_id" resultType="int" order="BEFORE">
+                select seq_subject.nextval currId from dual
+            </selectKey> 
+            insert into subject values(#{sub_id},#{title},#{type})
+        </insert>
+        <insert id="insertOption" parameterType="Option">
+            insert into option1 values(seq_option.nextval,#{option1},#{sub_id},#{order1})
+        </insert>
+</mapper>
